@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist de Campanhas D-1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .checked-row { background-color: #f8fafc; opacity: 0.5; text-decoration: line-through; }
+        .dropzone { border: 2px dashed #cbd5e1; transition: all 0.3s ease; }
+        .dropzone.dragover { border-color: #6366f1; background-color: #e0e7ff33; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 items-start">
+        
+        <!-- Main Content Area -->
+        <div class="flex-1 w-full">
+            <!-- Header -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900">Checklist de Análise de Campanhas</h1>
+                    <p class="text-sm text-slate-500 mt-1">Suba suas planilhas (Google Ads e Meta Ads) ou utilize o padrão carregado.</p>
+                </div>
+                <div class="flex items-center gap-4 bg-slate-100 px-4 py-2.5 rounded-xl">
+                    <div class="text-sm">
+                        <span class="font-medium text-slate-600">Progresso:</span>
+                        <span id="progress-text" class="font-bold text-indigo-600 ml-1">0 / 0 (0%)</span>
+                    </div>
+                    <button onclick="resetAll()" class="text-xs bg-white hover:bg-slate-50 text-slate-600 font-medium px-3 py-1.5 rounded-lg border border-slate-200 transition">
+                        Limpar Tudo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upload Box -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <h2 class="text-sm font-semibold text-slate-700 mb-3">📁 Carregar Novas Planilhas (CSV do Google Ads / Meta Ads)</h2>
+                <div id="drop-zone" class="dropzone rounded-xl p-6 text-center cursor-pointer flex flex-col items-center justify-center bg-slate-50/50 hover:bg-slate-50 transition">
+                    <svg class="w-10 h-10 text-indigo-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    <p class="text-sm font-medium text-slate-700">Arraste seus arquivos CSV aqui ou <span class="text-indigo-600 underline">clique para selecionar</span></p>
+                    <p class="text-xs text-slate-400 mt-1">Suporta múltiplos arquivos (Google Ads e Meta Ads simultaneamente)</p>
+                    <input type="file" id="file-input" multiple accept=".csv" class="hidden" onchange="handleFiles(this.files)">
+                </div>
+            </div>
+
+            <!-- Search & Filter bar -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center">
+                <div class="w-full sm:w-80">
+                    <input type="text" id="search-input" placeholder="Buscar campanha..." onkeyup="filterCampaigns()" class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0" id="filter-buttons">
+                    <button onclick="filterProduct('all', this)" class="filter-btn active text-xs font-medium px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition">Todos</button>
+                    <button onclick="filterProduct('Pós-graduação', this)" class="filter-btn text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Pós</button>
+                    <button onclick="filterProduct('Profissionalizantes', this)" class="filter-btn text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Prof.</button>
+                    <button onclick="filterProduct('Pós-médica', this)" class="filter-btn text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Médica</button>
+                    <button onclick="filterProduct('Pós-injetáveis', this)" class="filter-btn text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Injet.</button>
+                    <button onclick="filterProduct('Técnicos', this)" class="filter-btn text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Téc.</button>
+                    <button onclick="filterProduct('Técnicos-híbridos', this)" class="filter-btn text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Híb.</button>
+                </div>
+            </div>
+
+            <!-- Main Products Container -->
+            <div id="products-container" class="space-y-6"></div>
+        </div>
+
+        <!-- Sticky Floating Calculator Sidebar (Right) -->
+        <div class="w-full lg:w-80 lg:sticky lg:top-8 shrink-0">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                    <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        🧮 Calc de Investimento
+                    </h3>
+                    <button onclick="clearCalc()" class="text-[11px] text-slate-400 hover:text-slate-600 underline">Limpar</button>
+                </div>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Valor Atual (R$) <span class="text-[10px] text-indigo-500 font-normal">(Uso direto do teclado)</span></label>
+                        <input type="number" id="sb-base" placeholder="Ex: 1000" oninput="runSidebarCalc()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Aumento (%)</label>
+                        <input type="number" id="sb-percent" placeholder="Ex: 15" oninput="runSidebarCalc()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Quick % Buttons -->
+                    <div class="grid grid-cols-4 gap-1.5 pt-1">
+                        <button onclick="sbQuick(10)" class="bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-xs py-1.5 rounded-lg font-medium transition">+10%</button>
+                        <button onclick="sbQuick(15)" class="bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-xs py-1.5 rounded-lg font-medium transition">+15%</button>
+                        <button onclick="sbQuick(20)" class="bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-xs py-1.5 rounded-lg font-medium transition">+20%</button>
+                        <button onclick="sbQuick(30)" class="bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-xs py-1.5 rounded-lg font-medium transition">+30%</button>
+                    </div>
+
+                    <!-- Result Box -->
+                    <div class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-100 text-center mt-3">
+                        <span class="text-xs text-indigo-500 font-medium block mb-0.5">Novo Valor Calculado</span>
+                        <span id="sb-result" class="text-xl font-bold text-indigo-700">R$ 0,00</span>
+                    </div>
+
+                    <!-- Visual Calculator Keypad -->
+                    <div class="pt-3 border-t border-slate-100 grid grid-cols-4 gap-1.5 text-xs font-semibold">
+                        <button onclick="sbKey('7')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700">7</button>
+                        <button onclick="sbKey('8')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700">8</button>
+                        <button onclick="sbKey('9')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700">9</button>
+                        <button onclick="sbKeyAdd('+')" class="bg-indigo-50 text-indigo-600 border border-indigo-100 py-2 rounded-lg">+</button>
+                        
+                        <button onclick="sbKey('4')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700">4</button>
+                        <button onclick="sbKey('5')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700">5</button>
+                        <button onclick="sbKey('6')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700">6</button>
+                        <button onclick="sbKeyAdd('-')" class="bg-indigo-50 text-indigo-600 border border-indigo-100 py-2 rounded-lg">-</button>
+                        
+                        <button onclick="sbKey('1')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700">1</button>
+                        <button onclick="sbKey('2')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700">2</button>
+                        <button onclick="sbKey('3')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700">3</button>
+                        <button onclick="sbKeyAdd('*')" class="bg-indigo-50 text-indigo-600 border border-indigo-100 py-2 rounded-lg">×</button>
+                        
+                        <button onclick="sbKey('0')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700 col-span-2">0</button>
+                        <button onclick="sbKey('.')" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2 rounded-lg text-slate-700">.</button>
+                        <button onclick="sbKeyAdd('/')" class="bg-indigo-50 text-indigo-600 border border-indigo-100 py-2 rounded-lg">÷</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let campaignsData = [];
+        let currentFilter = 'all';
+
+        const defaultCampaigns = [
+            { id: 'c_0', name: "U-EAD-FB-ONG-CAP-HPOS-CONV-PADR-GENE-BR-MIST-CPC-INTERESSE-DERMATOLOGIA", product: "Pós-médica" },
+            { id: 'c_1', name: "U-EAD-FB-ONG-CAP-HPOS-CONV-PADR-GENE-BR-MIST-CPC-INTERESSE-PSIQUIATRIA", product: "Pós-médica" },
+            { id: 'c_2', name: "U-EAD-FB-ONG-CAP-HPOS-CONV-PADR-GENE-BR-MIST-CPC-SAUDE", product: "Pós-médica" },
+            { id: 'c_3', name: "U-EAD-FB-ONG-CAP-HPOS-CONV-PADR-GENE-BR-MIST-CPC-SAUDE-FORMADS", product: "Pós-médica" },
+            { id: 'c_4', name: "U-EAD-FB-ONG-CAP-HPOS-CONV-PADR-REMA-BR-MIST-CPC-SAUDE", product: "Pós-médica" },
+            { id: 'c_5', name: "U-EAD-FB-ONG-CAP-LPOS-CONV-PADR-GENE-BR-MIST-CPC-SAUDE", product: "Pós-médica" },
+            { id: 'c_6', name: "U-EAD-FB-ONG-CAP-LPOS-CONV-PADR-GENE-BR-MIST-CPC-SAUDE-MIXOFF", product: "Pós-médica" },
+            { id: 'c_7', name: "U-EAD-FB-ONG-CAP-LPOS-CONV-PADR-REMA-BR-MIST-CPC-SAUDE-WHATSAPP", product: "Pós-médica" },
+            { id: 'c_8', name: "U-EAD-FB-ONG-CAP-POS-CONV-MIST-GENE-BR-MIST-CPC-CATALOGO", product: "Pós-graduação" },
+            { id: 'c_9', name: "U-EAD-FB-ONG-CAP-POS-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE", product: "Pós-graduação" },
+            { id: 'c_10', name: "U-EAD-FB-ONG-CAP-POS-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE-PORTIFOLIO-CIENCIA-E-TECNOLOGIA", product: "Pós-graduação" },
+            { id: 'c_11', name: "U-EAD-FB-ONG-CAP-POS-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE-PORTIFOLIO-CIENCIAS-SOCIAIS", product: "Pós-graduação" },
+            { id: 'c_12', name: "U-EAD-FB-ONG-CAP-POS-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE-PORTIFOLIO-SAUDE-E-BEM-ESTAR", product: "Pós-graduação" },
+            { id: 'c_13', name: "U-EAD-FB-ONG-CAP-POS-CONV-MIST-REMA-BR-MIST-CPC-INTERESSE", product: "Pós-graduação" },
+            { id: 'c_14', name: "U-EAD-FB-ONG-CAP-POS-CONV-MIST-REMA-BR-MIST-CPC-INTERESSE-WHATSAPP", product: "Pós-graduação" },
+            { id: 'c_15', name: "U-EAD-FB-ONG-CAP-PRO-CONV-MIST-GENE-BR-MIST-CPC-CATALOGO", product: "Profissionalizantes" },
+            { id: 'c_16', name: "U-EAD-FB-ONG-CAP-PRO-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE", product: "Profissionalizantes" },
+            { id: 'c_17', name: "U-EAD-FB-ONG-CAP-SES-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE-FORMADS", product: "Pós-injetáveis" },
+            { id: 'c_18', name: "U-EAD-FB-ONG-CAP-SES-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE-V2", product: "Pós-injetáveis" },
+            { id: 'c_19', name: "U-EAD-FB-ONG-CAP-TEC-CONV-MIST-GENE-BR-MIST-CPC-CATALOGO", product: "Técnicos" },
+            { id: 'c_20', name: "U-EAD-FB-ONG-CAP-TEC-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE", product: "Técnicos" },
+            { id: 'c_21', name: "U-EAD-FB-ONG-CAP-TEC-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE-THS", product: "Técnicos" },
+            { id: 'c_22', name: "U-EAD-FB-ONG-CAP-TEC-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE-THS-CIDADES", product: "Técnicos-híbridos" },
+            { id: 'c_23', name: "U-EAD-FB-ONG-CAP-TEC-CONV-MIST-REMA-BR-MIST-CPC-INTERESSE", product: "Técnicos" },
+            { id: 'c_24', name: "U-EAD-FB-ONG-CAP-TEC-CONV-MIST-REMA-BR-MIST-CPC-INTERESSE-THS", product: "Técnicos" },
+            { id: 'c_25', name: "U-EAD-FB-ONG-CAP-TEC-CONV-MIST-REMA-BR-MIST-CPC-INTERESSE-WHATSAPP", product: "Técnicos" },
+            { id: 'c_26', name: "U-EAD-FB-ONG-CAP-THE-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE", product: "Técnicos-híbridos" },
+            { id: 'c_27', name: "U-EAD-FB-ONG-CAP-THP-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE", product: "Técnicos-híbridos" },
+            { id: 'c_28', name: "U-EAD-FB-ONG-CAP-THR-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE", product: "Técnicos-híbridos" },
+            { id: 'c_29', name: "U-EAD-FB-ONG-CAP-TRH-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE", product: "Técnicos-híbridos" },
+            { id: 'c_30', name: "U-EAD-FB-VEX-CAP-PRO-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE-CONVERSAO_LIVESQUINZENAIS", product: "Profissionalizantes" },
+            { id: 'c_31', name: "U-EAD-FB-VEX-CAP-PRO-CONV-MIST-GENE-BR-MIST-CPC-INTERESSE-LEAD_FORMS_LIVESQUINZENAIS", product: "Profissionalizantes" },
+            { id: 'c_32', name: "U-EAD-GG-ONG-CAP-HPOS-CONV-PADR-GENE-BR-PMAX-CPC", product: "Pós-médica" },
+            { id: 'c_33', name: "U-EAD-GG-ONG-CAP-LPOS-CONV-PADR-GENE-BR-PMAX-CPC", product: "Pós-médica" },
+            { id: 'c_34', name: "U-EAD-GG-ONG-CAP-POS-CONS-PADR-GENE-BR-DGEN-CPC", product: "Pós-graduação" },
+            { id: 'c_35', name: "U-EAD-GG-ONG-CAP-POS-CONV-PADR-BRAN-BR-PESQ-CPC", product: "Pós-graduação" },
+            { id: 'c_36', name: "U-EAD-GG-ONG-CAP-POS-CONV-PADR-GENE-BR-PESQ-CPC", product: "Pós-graduação" },
+            { id: 'c_37', name: "U-EAD-GG-ONG-CAP-POS-CONV-PADR-GENE-BR-PESQ-CPC-PORTIFOLIO-4.0-CIENCIA-E-TECNOLOGIA", product: "Pós-graduação" },
+            { id: 'c_38', name: "U-EAD-GG-ONG-CAP-POS-CONV-PADR-GENE-BR-PESQ-CPC-PORTIFOLIO-4.0-CIENCIA-SOCIAIS", product: "Pós-graduação" },
+            { id: 'c_39', name: "U-EAD-GG-ONG-CAP-POS-CONV-PADR-GENE-BR-PESQ-CPC-PORTIFOLIO-4.0-SAUDE-E-BEM-ESTAR", product: "Pós-graduação" },
+            { id: 'c_40', name: "U-EAD-GG-ONG-CAP-POS-CONV-PADR-GENE-BR-PESQ-CPC-TOP-CURSOS", product: "Pós-graduação" },
+            { id: 'c_41', name: "U-EAD-GG-ONG-CAP-POS-CONV-PADR-GENE-BR-PMAX-CPC", product: "Pós-graduação" },
+            { id: 'c_42', name: "U-EAD-GG-ONG-CAP-POS-CONV-PADR-GENE-BR-PMAX-CPC-PORTIFOLIO-4.0-CIENCIA-E-TECNOLOGIA", product: "Pós-graduação" },
+            { id: 'c_43', name: "U-EAD-GG-ONG-CAP-POS-CONV-PADR-GENE-BR-PMAX-CPC-PORTIFOLIO-4.0-CIENCIA-SOCIAIS", product: "Pós-graduação" },
+            { id: 'c_44', name: "U-EAD-GG-ONG-CAP-POS-CONV-PADR-GENE-BR-PMAX-CPC-PORTIFOLIO-4.0-SAUDE-E-BEM-ESTAR", product: "Pós-graduação" },
+            { id: 'c_45', name: "U-EAD-GG-ONG-CAP-SES-CONV-PADR-GENE-BR-PESQ-CPC-V2", product: "Pós-injetáveis" },
+            { id: 'c_46', name: "U-EAD-GG-ONG-CAP-SES-CONV-PADR-GENE-BR-PMAX-CPC-V2", product: "Pós-injetáveis" },
+            { id: 'c_47', name: "U-EAD-GG-ONG-CAP-TEC-CONS-PADR-GENE-BR-DGEN-CPC", product: "Técnicos" },
+            { id: 'c_48', name: "U-EAD-GG-ONG-CAP-TEC-CONV-PADR-GENE-BR-PESQ-CPC", product: "Técnicos" },
+            { id: 'c_49', name: "U-EAD-GG-ONG-CAP-TEC-CONV-PADR-GENE-BR-PESQ-CPC-CURSOS", product: "Técnicos" },
+            { id: 'c_50', name: "U-EAD-GG-ONG-CAP-TEC-CONV-PADR-GENE-BR-PMAX-CPC", product: "Técnicos" },
+            { id: 'c_51', name: "U-EAD-GG-ONG-CAP-THE-CONV-PADR-GENE-BR-PESQ-CPC", product: "Técnicos-híbridos" },
+            { id: 'c_52', name: "U-EAD-GG-ONG-CAP-THE-CONV-PADR-GENE-BR-PMAX-CPC", product: "Técnicos-híbridos" },
+            { id: 'c_53', name: "U-EAD-GG-ONG-CAP-THP-CONV-PADR-GENE-BR-PESQ-CPC", product: "Técnicos-híbridos" },
+            { id: 'c_54', name: "U-EAD-GG-ONG-CAP-THP-CONV-PADR-GENE-BR-PMAX-CPC", product: "Técnicos-híbridos" },
+            { id: 'c_55', name: "U-EAD-GG-ONG-CAP-THR-CONV-PADR-GENE-BR-PESQ-CPC", product: "Técnicos-híbridos" },
+            { id: 'c_56', name: "U-EAD-GG-ONG-CAP-THR-CONV-PADR-GENE-BR-PMAX-CPC", product: "Técnicos-híbridos" },
+            { id: 'c_57', name: "U-EAD-GG-ONG-CAP-TRH-CONV-PADR-GENE-BR-PESQ-CPC", product: "Técnicos-híbridos" },
+            { id: 'c_58', name: "U-EAD-GG-ONG-CAP-TRH-CONV-PADR-GENE-BR-PMAX-CPC", product: "Técnicos-híbridos" }
+        ];
+
+        function initApp() {
+            const saved = localStorage.getItem('campaigns_dynamic_data');
+            if (saved) {
+                try { campaignsData = JSON.parse(saved); } catch(e) { campaignsData = defaultCampaigns; }
+            } else {
+                campaignsData = defaultCampaigns;
+            }
+            render();
+            document.getElementById('sb-base').focus();
+        }
+
+        function runSidebarCalc() {
+            const base = parseFloat(document.getElementById('sb-base').value) || 0;
+            const pct = parseFloat(document.getElementById('sb-percent').value) || 0;
+            const res = base * (1 + (pct / 100));
+            document.getElementById('sb-result').innerText = res.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function sbQuick(pct) {
+            document.getElementById('sb-percent').value = pct;
+            runSidebarCalc();
+            document.getElementById('sb-percent').focus();
+        }
+
+        function clearCalc() {
+            document.getElementById('sb-base').value = '';
+            document.getElementById('sb-percent').value = '';
+            document.getElementById('sb-result').innerText = 'R$ 0,00';
+            document.getElementById('sb-base').focus();
+        }
+
+        function sbKey(char) {
+            const baseInput = document.getElementById('sb-base');
+            baseInput.value += char;
+            runSidebarCalc();
+            baseInput.focus();
+        }
+
+        function sbKeyAdd(op) {
+            const baseInput = document.getElementById('sb-base');
+            try {
+                if (baseInput.value) {
+                    baseInput.value = eval(baseInput.value + op);
+                    runSidebarCalc();
+                }
+            } catch(e) {}
+            baseInput.focus();
+        }
+
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.addEventListener('click', () => document.getElementById('file-input').click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+        });
+
+        function classifyProduct(name) {
+            const u = name.toUpperCase();
+            if (u.includes('-HPOS-') || u.includes('-LPOS-') || u.startsWith('HPOS') || u.startsWith('LPOS')) return 'Pós-médica';
+            if (u.includes('-SES-') || u.startsWith('SES')) return 'Pós-injetáveis';
+            if (u.includes('-THE-') || u.includes('-THR-') || u.includes('-THP-') || u.includes('-THS-') || u.includes('-TRH-')) return 'Técnicos-híbridos';
+            if (u.includes('-TEC-') || u.startsWith('TEC')) return 'Técnicos';
+            if (u.includes('-PRO-') || u.startsWith('PRO')) return 'Profissionalizantes';
+            if (u.includes('-POS-') || u.startsWith('POS')) return 'Pós-graduação';
+            return 'Outros';
+        }
+
+        function handleFiles(files) {
+            let allNames = new Set();
+            let filesProcessed = 0;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    const lines = text.split(/\r?\n/);
+                    
+                    let headerIdx = 0;
+                    for (let i = 0; i < Math.min(lines.length, 5); i++) {
+                        if (lines[i].includes('Campanha') || lines[i].includes('Nome da campanha')) {
+                            headerIdx = i;
+                            break;
+                        }
+                    }
+
+                    lines.forEach((line, idx) => {
+                        if (idx <= headerIdx || !line.trim()) return;
+                        let row = [];
+                        let inQuotes = false;
+                        let val = '';
+                        for (let char of line) {
+                            if (char === '"') inQuotes = !inQuotes;
+                            else if (char === ',' && !inQuotes) { row.push(val.trim().replace(/^"|"$/g, '')); val = ''; }
+                            else val += char;
+                        }
+                        row.push(val.trim().replace(/^"|"$/g, ''));
+
+                        row.forEach(col => {
+                            if (col && (col.startsWith('U-') || col.length > 15)) {
+                                if (!col.includes('1 de novembro') && !col.includes('BRL')) allNames.add(col);
+                            }
+                        });
+                    });
+
+                    filesProcessed++;
+                    if (filesProcessed === files.length) {
+                        if (allNames.size > 0) {
+                            const newCampaigns = [];
+                            let counter = 0;
+                            Array.from(allNames).sort().forEach(name => {
+                                newCampaigns.push({ id: 'dyn_' + (counter++), name: name, product: classifyProduct(name) });
+                            });
+                            campaignsData = newCampaigns;
+                            localStorage.setItem('campaigns_dynamic_data', JSON.stringify(campaignsData));
+                            alert(`Sucesso! Foram carregadas ${campaignsData.length} campanhas.`);
+                            render();
+                        } else {
+                            alert('Não foi possível identificar campanhas no formato esperado.');
+                        }
+                    }
+                };
+                reader.readAsText(file, 'UTF-8');
+            });
+        }
+
+        function render() {
+            const container = document.getElementById('products-container');
+            container.innerHTML = '';
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            
+            const products = {};
+            campaignsData.forEach(c => {
+                if (currentFilter !== 'all' && c.product !== currentFilter) return;
+                if (searchTerm && !c.name.toLowerCase().includes(searchTerm)) return;
+                if (!products[c.product]) products[c.product] = [];
+                products[c.product].push(c);
+            });
+
+            if (Object.keys(products).length === 0) {
+                container.innerHTML = '<div class="bg-white rounded-xl p-8 text-center text-slate-400 border border-slate-200">Nenhuma campanha encontrada.</div>';
+                updateProgress();
+                return;
+            }
+
+            for (const [prodName, camps] of Object.entries(products)) {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden';
+                
+                let html = `
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                        <h2 class="font-bold text-slate-800 text-lg">${prodName}</h2>
+                        <span class="text-xs font-semibold px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-full">${camps.length} campanhas</span>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                `;
+
+                camps.forEach(c => {
+                    const isChecked = localStorage.getItem('chk_' + c.id) === 'true';
+                    html += `
+                        <div class="px-6 py-3.5 flex items-center justify-between gap-4 transition hover:bg-slate-50/80 ${isChecked ? 'checked-row' : ''}" id="row_${c.id}">
+                            <span class="text-sm text-slate-700 font-medium break-all">${c.name}</span>
+                            <label class="relative flex items-center p-2 rounded-full cursor-pointer shrink-0">
+                                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCampaign('${c.id}')" class="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
+                            </label>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+                card.innerHTML = html;
+                container.appendChild(card);
+            }
+            updateProgress();
+        }
+
+        function toggleCampaign(id) {
+            const checkbox = document.querySelector(`#row_${id} input[type="checkbox"]`);
+            const row = document.getElementById(`row_${id}`);
+            localStorage.setItem('chk_' + id, checkbox.checked);
+            if (checkbox.checked) row.classList.add('checked-row');
+            else row.classList.remove('checked-row');
+            updateProgress();
+        }
+
+        function updateProgress() {
+            let total = campaignsData.length;
+            let checked = 0;
+            campaignsData.forEach(c => { if (localStorage.getItem('chk_' + c.id) === 'true') checked++; });
+            const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+            document.getElementById('progress-text').innerText = `${checked} / ${total} (${pct}%)`;
+        }
+
+        function filterProduct(prod, btn) {
+            currentFilter = prod;
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('bg-indigo-600', 'text-white');
+                b.classList.add('bg-slate-100', 'text-slate-600');
+            });
+            btn.classList.remove('bg-slate-100', 'text-slate-600');
+            btn.classList.add('bg-indigo-600', 'text-white');
+            render();
+        }
+
+        function filterCampaigns() { render(); }
+
+        function resetAll() {
+            if (confirm('Deseja limpar todas as marcações?')) {
+                campaignsData.forEach(c => localStorage.removeItem('chk_' + c.id));
+                render();
+            }
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
